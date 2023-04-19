@@ -1,6 +1,7 @@
 Twitter Sentiment Analysis with R
 
-###Goal: The goal of this project is to predict the sentiment the tweets.
+###Goal: The goal of this project is to predict the sentiment in ![Screenshot 2023-04-19 110752](https://user-images.githubusercontent.com/125946256/233135312-c46b9fb7-7716-46b6-99cb-587b5e563718.jpg)
+the tweets.
 
 Naive bayes algorithm is used to predict the sentiment in the tweets.
 
