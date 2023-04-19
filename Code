@@ -1,0 +1,253 @@
+
+#importing the data
+tweet_training <- read.csv("tweeter_traning.csv", stringsAsFactors = FALSE)
+
+#exploring the data
+str(tweet_training)
+
+table(tweet_training$Sentiment)
+
+round(prop.table(table(tweet_training$Sentiment))*100, digits = 1)
+
+#installing package for text mining.
+install.packages("tm")
+
+library(tm)
+library(NLP)
+
+#Changing the encoding to universal encoding.
+tweet_training1 <- lapply(tweet_training, function(x) iconv(x, from = "", to = "UTF-8"))
+
+#Creating the text corpus for text mining as a first step in processing text data.
+tweet_corpus <- VCorpus(VectorSource(tweet_training1$SentimentText))
+
+#Examining the text corpus
+print(tweet_corpus)
+
+inspect(tweet_corpus[1:2])
+
+as.character(tweet_corpus[[1]])
+
+##Cleaning the data
+#All lower case characters
+tweet_corpus_clean <- tm_map(tweet_corpus, content_transformer(tolower))
+
+as.character(tweet_corpus[[1]])
+as.character(tweet_corpus_clean[[1]])
+
+#removing the numbers
+tweet_corpus_clean <- tm_map(tweet_corpus_clean, removeNumbers)
+
+as.character(tweet_corpus[[27]])
+as.character(tweet_corpus_clean[[27]])
+
+#removing the urls to reduce the noise
+
+removeUrl <- function(x){gsub("(f|ht)tps?://[a-zA-Z0-9./]+", "", x)}
+
+tweet_corpus_clean <- tm_map(tweet_corpus_clean, removeUrl)
+
+#removing the stopwords
+tweet_corpus_clean <- tm_map(tweet_corpus_clean, removeWords, stopwords())
+
+as.character(tweet_corpus[[3]])
+as.character(tweet_corpus_clean[[3]])
+
+#removing the usernames to reduce the noise
+
+removeUserNames <- function(x){gsub("@\\w+", "", x)}
+
+tweet_corpus_clean <- tm_map(tweet_corpus_clean, removeUserNames)
+
+#Removing the punctuataion.
+replacePunctuation <- function(x) {gsub("[[:punct:]]+", " ", x) }
+
+tweet_corpus_clean <- tm_map(tweet_corpus_clean, replacePunctuation)
+
+#installing package to do the stemming to reduce the columns
+install.packages("SnowballC")
+library(SnowballC)
+
+tweet_corpus_clean <- tm_map(tweet_corpus_clean, stemDocument)
+
+#Removing the white spaces
+tweet_corpus_clean <- tm_map(tweet_corpus_clean, stripWhitespace)
+
+tweet_corpus_clean <- tm_map(tweet_corpus_clean, PlainTextDocument)
+
+
+as.character(tweet_corpus_clean[[24]])
+
+
+##Tokenization
+#Creating the document matrix
+tweet_dtm <- DocumentTermMatrix(tweet_corpus_clean)
+
+#examining the matrix
+
+tweet_dtm$ncol
+tweet_dtm$nrow
+
+
+tweet_dtm$dimnames$Terms[100]
+
+
+#Creating the training sets and test sets
+tweet_dtm_train <- tweet_dtm[1:52494,]
+tweet_dtm_test <- tweet_dtm[52495:69992,]
+
+#creating labels
+tweet_train_labels <- tweet_training[1:52494,]$Sentiment
+tweet_test_labels <- tweet_training[52495:69992,]$Sentiment
+
+#checking the proportions.
+prop.table(table(tweet_train_labels))
+prop.table(table(tweet_test_labels))
+
+#installing wordCloud to check the frequent words
+install.packages("wordcloud")
+library(wordcloud)
+
+wordcloud(tweet_corpus_clean, min.freq = 40)
+
+#creating vectors for the class attribute
+Negative <- subset(tweet_training, Sentiment == "0")
+Positive <- subset(tweet_training, Sentiment == "1")
+
+#checking the columns
+tweet_dtm$ncol
+
+#Finding the frequent terms.
+freq_words <- findFreqTerms(tweet_dtm,10)
+freq_words[1:10]
+
+#Trainig and test data sets with only frequent words.
+tweet_dtm_freq_train <- tweet_dtm_train[ , freq_words]
+tweet_dtm_freq_test <- tweet_dtm_test[ , freq_words]
+
+#checking the columns
+tweet_dtm_freq_train$ncol
+
+#converting the binary attributes to categorical attributes
+convertCounts <- function(x){
+  x <- ifelse(x>0, "Yes", "No")
+}
+
+tweet_train <- apply(tweet_dtm_freq_train, MARGIN = 2, convertCounts)
+tweet_test <- apply(tweet_dtm_freq_test, MARGIN = 2, convertCounts)
+
+#installing package for naive bayes function.
+install.packages("e1071")
+
+library(e1071)
+
+#training the model using naive bayes classifier
+tweet_classifier <- naiveBayes(tweet_train, tweet_train_labels)
+
+#Installing gmodels for cross- validation
+install.packages("gmodels")
+
+library(gmodels)
+
+#Testing the model using tes dataset
+tweet_test_pred <- predict(tweet_classifier, tweet_test)
+
+
+#checking the accuracy with crossvalidation
+CrossTable(tweet_test_labels, tweet_test_pred, 
+           prop.chisq = FALSE, prop.t = FALSE, prop.r = FALSE,
+           dnn = c('actual', 'predicted'))
+
+
+#improving the model accuracy using laplace value 1 and traing the model again.
+tweet_classifier2 <- naiveBayes(tweet_train, tweet_train_labels, laplace = 1)
+
+#testing the model again with test data set.
+tweet_test_pred2 <- predict(tweet_classifier2, tweet_test)
+
+#checking the accuracy of the model again.
+CrossTable(tweet_test_labels,tweet_test_pred2,
+           prop.chisq = FALSE, prop.t = FALSE, prop.r = FALSE,
+           dnn = c('actual', 'predicted'))	
+## the accuracy was improved. so we are using this model for the original test tweeter data set.
+
+
+#Importing the original test data set
+og_test <- read.csv("tweeter_test.csv")
+
+#converting the encoding to the universal encoding UTF- 8
+og_test1 <- lapply(og_test, function(x) iconv(x, from = "", to = "UTF-8"))
+
+#creating the test corpus
+og_test_corpus <- VCorpus(VectorSource(og_test1$SentimentText))
+
+
+#Data cleaning
+
+#to lower characters
+og_test_corpus_clean <- tm_map(og_test_corpus, content_transformer(tolower))
+
+#removing the numbers
+og_test_corpus_clean <- tm_map(og_test_corpus_clean, removeNumbers)
+
+#removing the urls
+og_test_corpus_clean <- tm_map(og_test_corpus_clean, removeUrl)
+
+#removing the stopwords
+og_test_corpus_clean <- tm_map(og_test_corpus_clean, removeWords, stopwords())
+
+#removing the usernames
+og_test_corpus_clean <- tm_map(og_test_corpus_clean, removeUserNames)
+
+#removing the punctuation.
+og_test_corpus_clean <- tm_map(og_test_corpus_clean, replacePunctuation)
+
+#stemming the document
+og_test_corpus_clean <- tm_map(og_test_corpus_clean, stemDocument)
+
+#removing the whitespaces
+og_test_corpus_clean <- tm_map(og_test_corpus_clean, stripWhitespace)
+
+
+og_test_corpus_clean <- tm_map(og_test_corpus_clean, PlainTextDocument)
+
+
+#creating the document term matrix
+og_test_dtm <- DocumentTermMatrix(og_test_corpus_clean)
+
+#checking the matrix
+og_test_dtm$ncol
+
+nrow(og_test_dtm)
+
+#finding the frequent terms
+og_test_freq_words <- findFreqTerms(og_test_dtm,5)
+
+
+og_test_freq_words[1:10]
+
+#extracting the frequent words from the matrix to reduce the columns and noise
+og_test_dtm_freq <- og_test_dtm[, og_test_freq_words]
+
+
+
+#converting the binary columns to categorical columns
+og_test_final <- apply(og_test_dtm_freq, MARGIN = 2, convertCounts)
+
+
+#predicting the sentiment for the original test data set using the trained model.
+og_test_pred <- predict(tweet_classifier2, og_test_final)
+
+#creating the csv file in the submission format.
+
+#combing the IDS of the test data set with final predictions.
+final_results <- cbind(og_test[,1], as.data.frame(og_test_pred))
+
+#changing the column names to the submission format
+colnames(final_results) <- c("ID", "Sentiment")
+
+#viewing the results
+View(final_results)
+
+write.csv(final_results, "tweeter_sentiment_predictions.csv", row.names = FALSE)
+
