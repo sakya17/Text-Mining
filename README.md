@@ -4,7 +4,7 @@ Twitter Sentiment Analysis with R
 
 Naive bayes algorithm is used to predict the sentiment in the tweets.
 
-Dataset.
+###Dataset.
 
 The data contains more than 99,989 rows. Training data is divided into 69,992 instances and the blind hold data set into 29,997 instances.
 
@@ -30,22 +30,26 @@ The preproceesing is done
 ###Training the model
 
 
-These labels and the preprocessed training model are used in the naive bayes model train the model.
+These labels and the preprocessed training data are used in the naive bayes algorithm to train the model.
 
 
 ###Evaluation
 
 
-The evaluation is done using the validation set and trained model
+The evaluation is done using the validation set and trained model to predict the sentiment. 
+The results are evaluated using confusion matric and crosstable function.
 
 
 ###Hyperparametric Tuning
 
-After Evaluation the model is trained again using hyperparametric tuning, which improved the accuracy for the model
+After Evaluation, the model is trained again using hyperparametric tuning, which improved the accuracy for the model
+the improved accuracy is confirmed by confusion matrix using accuracy as the metric.
 
 ###Deployment of the model with best accuracy.
 
-The second model for predicting the sentiment in  blind hold datset.
+The second model is the best in predicting the sentiment in blind hold datset.
+
+This model won second place in kaggle competetion condcuted by our professor.
 
 
 
